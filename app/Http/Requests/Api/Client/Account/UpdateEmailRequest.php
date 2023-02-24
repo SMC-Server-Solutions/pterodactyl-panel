@@ -3,12 +3,15 @@
 namespace Pterodactyl\Http\Requests\Api\Client\Account;
 
 use Pterodactyl\Models\User;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Hashing\Hasher;
 use Pterodactyl\Http\Requests\Api\Client\ClientApiRequest;
 use Pterodactyl\Exceptions\Http\Base\InvalidPasswordProvidedException;
 
 class UpdateEmailRequest extends ClientApiRequest
 {
     /**
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      * @throws \Pterodactyl\Exceptions\Http\Base\InvalidPasswordProvidedException
      */
     public function authorize(): bool
@@ -17,8 +20,10 @@ class UpdateEmailRequest extends ClientApiRequest
             return false;
         }
 
+        $hasher = Container::getInstance()->make(Hasher::class);
+
         // Verify password matches when changing password or email.
-        if (!password_verify($this->input('password'), $this->user()->password)) {
+        if (!$hasher->check($this->input('password'), $this->user()->password)) {
             throw new InvalidPasswordProvidedException(trans('validation.internal.invalid_password'));
         }
 

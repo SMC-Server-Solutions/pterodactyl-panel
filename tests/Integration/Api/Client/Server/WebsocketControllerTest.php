@@ -14,17 +14,29 @@ use Pterodactyl\Tests\Integration\Api\Client\ClientApiIntegrationTestCase;
 class WebsocketControllerTest extends ClientApiIntegrationTestCase
 {
     /**
-     * Test that a subuser attempting to connect to the websocket recieves an error if they
+     * Test that a subuser attempting to connect to the websocket receives an error if they
      * do not explicitly have the permission.
      */
     public function testSubuserWithoutWebsocketPermissionReceivesError()
     {
         [$user, $server] = $this->generateTestAccount([Permission::ACTION_CONTROL_RESTART]);
 
-        $this->actingAs($user)->getJson("/api/client/servers/{$server->uuid}/websocket")
+        $this->actingAs($user)->getJson("/api/client/servers/$server->uuid/websocket")
             ->assertStatus(Response::HTTP_FORBIDDEN)
             ->assertJsonPath('errors.0.code', 'HttpForbiddenException')
             ->assertJsonPath('errors.0.detail', 'You do not have permission to connect to this server\'s websocket.');
+    }
+
+    /**
+     * Confirm users cannot access the websocket for another user's server.
+     */
+    public function testUserWithoutPermissionForServerReceivesError()
+    {
+        [, $server] = $this->generateTestAccount([Permission::ACTION_WEBSOCKET_CONNECT]);
+        [$user] = $this->generateTestAccount([Permission::ACTION_WEBSOCKET_CONNECT]);
+
+        $this->actingAs($user)->getJson("/api/client/servers/$server->uuid/websocket")
+            ->assertStatus(Response::HTTP_NOT_FOUND);
     }
 
     /**
@@ -41,14 +53,14 @@ class WebsocketControllerTest extends ClientApiIntegrationTestCase
         $server->node->scheme = 'https';
         $server->node->save();
 
-        $response = $this->actingAs($user)->getJson("/api/client/servers/{$server->uuid}/websocket");
+        $response = $this->actingAs($user)->getJson("/api/client/servers/$server->uuid/websocket");
 
         $response->assertOk();
         $response->assertJsonStructure(['data' => ['token', 'socket']]);
 
         $connection = $response->json('data.socket');
         $this->assertStringStartsWith('wss://', $connection, 'Failed asserting that websocket connection address has expected "wss://" prefix.');
-        $this->assertStringEndsWith("/api/servers/{$server->uuid}/ws", $connection, 'Failed asserting that websocket connection address uses expected Wings endpoint.');
+        $this->assertStringEndsWith("/api/servers/$server->uuid/ws", $connection, 'Failed asserting that websocket connection address uses expected Wings endpoint.');
 
         $config = Configuration::forSymmetricSigner(new Sha256(), $key = InMemory::plainText($server->node->getDecryptedKey()));
         $config->setValidationConstraints(new SignedWith(new Sha256(), $key));
@@ -90,7 +102,7 @@ class WebsocketControllerTest extends ClientApiIntegrationTestCase
         /** @var \Pterodactyl\Models\Server $server */
         [$user, $server] = $this->generateTestAccount($permissions);
 
-        $response = $this->actingAs($user)->getJson("/api/client/servers/{$server->uuid}/websocket");
+        $response = $this->actingAs($user)->getJson("/api/client/servers/$server->uuid/websocket");
 
         $response->assertOk();
         $response->assertJsonStructure(['data' => ['token', 'socket']]);

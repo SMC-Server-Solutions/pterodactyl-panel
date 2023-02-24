@@ -3,27 +3,30 @@
 namespace Pterodactyl\Repositories\Wings;
 
 use Pterodactyl\Models\Node;
-use Pterodactyl\Models\Server;
-use GuzzleHttp\Exception\TransferException;
+use Lcobucci\JWT\Token\Plain;
+use GuzzleHttp\Exception\GuzzleException;
 use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
 
 class DaemonTransferRepository extends DaemonRepository
 {
     /**
-     * @throws DaemonConnectionException
+     * @throws \Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException
      */
-    public function notify(Server $server, array $data, Node $node, string $token): void
+    public function notify(Node $targetNode, Plain $token): void
     {
         try {
-            $this->getHttpClient()->post('/api/transfer', [
+            $this->getHttpClient()->post(sprintf('/api/servers/%s/transfer', $this->server->uuid), [
                 'json' => [
-                    'server_id' => $server->uuid,
-                    'url' => $node->getConnectionAddress() . sprintf('/api/servers/%s/archive', $server->uuid),
-                    'token' => 'Bearer ' . $token,
-                    'server' => $data,
+                    'server_id' => $this->server->uuid,
+                    'url' => $targetNode->getConnectionAddress() . '/api/transfers',
+                    'token' => 'Bearer ' . $token->toString(),
+                    'server' => [
+                        'uuid' => $this->server->uuid,
+                        'start_on_completion' => false,
+                    ],
                 ],
             ]);
-        } catch (TransferException $exception) {
+        } catch (GuzzleException $exception) {
             throw new DaemonConnectionException($exception);
         }
     }

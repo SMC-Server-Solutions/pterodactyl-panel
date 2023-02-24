@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Allocation;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,8 +21,16 @@ class AllocationFactory extends Factory
     public function definition(): array
     {
         return [
-            'ip' => $this->faker->ipv4,
-            'port' => $this->faker->randomNumber(5),
+            'ip' => $this->faker->unique()->ipv4,
+            'port' => $this->faker->unique()->numberBetween(1024, 65535),
         ];
+    }
+
+    /**
+     * Attaches the allocation to a specific server model.
+     */
+    public function forServer(Server $server): self
+    {
+        return $this->for($server)->for($server->node);
     }
 }

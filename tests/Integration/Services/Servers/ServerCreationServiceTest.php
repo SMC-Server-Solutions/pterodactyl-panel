@@ -2,7 +2,7 @@
 
 namespace Pterodactyl\Tests\Integration\Services\Servers;
 
-use Mockery;
+use Mockery\MockInterface;
 use Pterodactyl\Models\Egg;
 use GuzzleHttp\Psr7\Request;
 use Pterodactyl\Models\Node;
@@ -24,8 +24,9 @@ class ServerCreationServiceTest extends IntegrationTestCase
 {
     use WithFaker;
 
-    /** @var \Mockery\MockInterface */
-    private $daemonServerRepository;
+    protected MockInterface $daemonServerRepository;
+
+    protected Egg $bungeecord;
 
     /**
      * Stub the calls to Wings so that we don't actually hit those API endpoints.
@@ -34,7 +35,13 @@ class ServerCreationServiceTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->daemonServerRepository = Mockery::mock(DaemonServerRepository::class);
+        /* @noinspection PhpFieldAssignmentTypeMismatchInspection */
+        $this->bungeecord = Egg::query()
+            ->where('author', 'support@pterodactyl.io')
+            ->where('name', 'Bungeecord')
+            ->firstOrFail();
+
+        $this->daemonServerRepository = \Mockery::mock(DaemonServerRepository::class);
         $this->swap(DaemonServerRepository::class, $this->daemonServerRepository);
     }
 
@@ -67,8 +74,7 @@ class ServerCreationServiceTest extends IntegrationTestCase
             $allocations[0]->port,
         ]);
 
-        /** @noinspection PhpParamsInspection */
-        $egg = $this->cloneEggAndVariables(Egg::query()->findOrFail(1));
+        $egg = $this->cloneEggAndVariables($this->bungeecord);
         // We want to make sure that the validator service runs as an admin, and not as a regular
         // user when saving variables.
         $egg->variables()->first()->update([
@@ -94,19 +100,10 @@ class ServerCreationServiceTest extends IntegrationTestCase
                 'BUNGEE_VERSION' => '123',
                 'SERVER_JARFILE' => 'server2.jar',
             ],
+            'start_on_completion' => true,
         ];
 
-        $this->daemonServerRepository->expects('setServer')->andReturnSelf();
-        $this->daemonServerRepository->expects('create')->with(Mockery::on(function ($value) {
-            $this->assertIsArray($value);
-            // Just check for some keys to make sure we're getting the expected configuration
-            // structure back. Other tests exist to confirm it is the correct structure.
-            $this->assertArrayHasKey('uuid', $value);
-            $this->assertArrayHasKey('environment', $value);
-            $this->assertArrayHasKey('invocation', $value);
-
-            return true;
-        }))->andReturnUndefined();
+        $this->daemonServerRepository->expects('setServer->create')->with(true)->andReturnUndefined();
 
         try {
             $this->getService()->handle(array_merge($data, [
@@ -115,7 +112,8 @@ class ServerCreationServiceTest extends IntegrationTestCase
                     'SERVER_JARFILE' => 'server2.jar',
                 ],
             ]), $deployment);
-            $this->assertTrue(false, 'This statement should not be reached.');
+
+            $this->fail('This execution pathway should not be reached.');
         } catch (ValidationException $exception) {
             $this->assertCount(1, $exception->errors());
             $this->assertArrayHasKey('environment.BUNGEE_VERSION', $exception->errors());
@@ -128,16 +126,17 @@ class ServerCreationServiceTest extends IntegrationTestCase
         $this->assertNotNull($response->uuid);
         $this->assertSame($response->uuidShort, substr($response->uuid, 0, 8));
         $this->assertSame($egg->id, $response->egg_id);
-        $this->assertCount(2, $response->variables);
-        $this->assertSame('123', $response->variables[0]->server_value);
-        $this->assertSame('server2.jar', $response->variables[1]->server_value);
+        $variables = $response->variables->sortBy('server_value')->values();
+        $this->assertCount(2, $variables);
+        $this->assertSame('123', $variables->get(0)->server_value);
+        $this->assertSame('server2.jar', $variables->get(1)->server_value);
 
         foreach ($data as $key => $value) {
-            if (in_array($key, ['allocation_additional', 'environment'])) {
+            if (in_array($key, ['allocation_additional', 'environment', 'start_on_completion'])) {
                 continue;
             }
 
-            $this->assertSame($value, $response->{$key});
+            $this->assertSame($value, $response->{$key}, "Failed asserting equality of '$key' in server response. Got: [{$response->{$key}}] Expected: [$value]");
         }
 
         $this->assertCount(2, $response->allocations);
@@ -146,7 +145,7 @@ class ServerCreationServiceTest extends IntegrationTestCase
         $this->assertSame($allocations[4]->id, $response->allocations[1]->id);
 
         $this->assertFalse($response->isSuspended());
-        $this->assertTrue($response->oom_disabled);
+        $this->assertFalse($response->oom_killer);
         $this->assertSame(0, $response->database_limit);
         $this->assertSame(0, $response->allocation_limit);
         $this->assertSame(0, $response->backup_limit);
@@ -187,7 +186,7 @@ class ServerCreationServiceTest extends IntegrationTestCase
             'cpu' => 0,
             'startup' => 'java server2.jar',
             'image' => 'java:8',
-            'egg_id' => 1,
+            'egg_id' => $this->bungeecord->id,
             'environment' => [
                 'BUNGEE_VERSION' => '123',
                 'SERVER_JARFILE' => 'server2.jar',
@@ -209,10 +208,7 @@ class ServerCreationServiceTest extends IntegrationTestCase
         $this->assertDatabaseMissing('servers', ['owner_id' => $user->id]);
     }
 
-    /**
-     * @return \Pterodactyl\Services\Servers\ServerCreationService
-     */
-    private function getService()
+    private function getService(): ServerCreationService
     {
         return $this->app->make(ServerCreationService::class);
     }
