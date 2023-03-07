@@ -22,23 +22,6 @@ Stop settling for less. Make game servers a first class citizen on your platform
 * [Community Guides](https://pterodactyl.io/community/about.html)
 * Or, get additional help [via Discord](https://discord.gg/pterodactyl)
 
-## Sponsors
-
-I would like to extend my sincere thanks to the following sponsors for helping fund Pterodactyl's developement.
-[Interested in becoming a sponsor?](https://github.com/sponsors/matthewpi)
-
-| Company                                                   | About                                                                                                                                                                                                                           |
-|-----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [**WISP**](https://wisp.gg)                               | Extra features.                                                                                                                                                                                                                 |
-| [**Aussie Server Hosts**](https://aussieserverhosts.com/) | No frills Australian Owned and operated High Performance Server hosting for some of the most demanding games serving Australia and New Zealand.                                                                                 |
-| [**BisectHosting**](https://www.bisecthosting.com/)       | BisectHosting provides Minecraft, Valheim and other server hosting services with the highest reliability and lightning fast support since 2012.                                                                                 |
-| [**MineStrator**](https://minestrator.com/)               | Looking for the most highend French hosting company for your minecraft server? More than 24,000 members on our discord trust us. Give us a try!                                                                                 |
-| [**Skynode**](https://www.skynode.pro/)                   | Skynode provides blazing fast game servers along with a top-notch user experience. Whatever our clients are looking for, we're able to provide it!                                                                              |
-| [**VibeGAMES**](https://vibegames.net/)                   | VibeGAMES is a game server provider that specializes in DDOS protection for the games we offer. We have multiple locations in the US, Brazil, France, Germany, Singapore, Australia and South Africa.                           |
-| [**Pterodactyl Market**](https://pterodactylmarket.com/)  | Pterodactyl Market is a one-and-stop shop for Pterodactyl. In our market, you can find Add-ons, Themes, Eggs, and more for Pterodactyl.                                                                                         |
-| [**UltraServers**](https://ultraservers.com/)             | Deploy premium games hosting with the click of a button. Manage and swap games with ease and let us take care of the rest. We currently support Minecraft, Rust, ARK, 7 Days to Die, Garys MOD, CS:GO, Satisfactory and others. |
-| [**Realms Hosting**](https://realmshosting.com/)          | Want to build your Gaming Empire? Use Realms Hosting today to kick start your game server hosting with outstanding DDOS Protection, 24/7 Support, Cheap Prices and a Custom Control Panel.                                      |                                                                                                                                                                                                                                |
-
 ### Supported Games
 
 Pterodactyl supports a wide variety of games by utilizing Docker containers to isolate each instance. This gives
